@@ -9,6 +9,11 @@ class TestWindow < Gosu::Window
 
     @player = Player.new(self)
     @player.warp(320, 240)
+
+    @star_animation = Gosu::Image::load_tiles(self, "media/star.png", 25, 25, false)
+    @stars = Array.new
+
+    @font = Gosu::Font.new(self, Gosu::default_font_name, 20)
   end
 
   def update
@@ -22,11 +27,18 @@ class TestWindow < Gosu::Window
       @player.accelerate
     end
     @player.move
+    @player.collect_stars(@stars)
+
+    if rand(100) < 4 && @stars.size < 25
+      @stars.push(Star.new(@star_animation))
+    end
   end
 
   def draw
     @player.draw
     @background_image.draw(0, 0, 0)
+    @stars.each { |star| star.draw }
+    @font.draw("Score: #{@player.score}", 10, 10, ZOrder::UI, 1.0, 1.0, 0xffffff00)
   end
 
   def button_down(id)
@@ -75,6 +87,48 @@ class Player
 
   def draw
     @image.draw_rot(@x, @y, 1, @angle)
+  end
+
+  def score
+    @score
+  end
+
+  def collect_stars(stars)
+    if stars.reject! { |star| Gosu::distance(@x, @y, star.x, star.y) < 35 }
+      @score += 10
+      true
+    else
+      false
+    end
+  end
+
+end
+
+#################
+
+module ZOrder
+  Background = 0
+  Stars = 1
+  Player = 2
+  UI = 3
+end
+
+class Star
+  attr_reader :x, :y
+
+  def initialize(animation)
+    @animation = animation
+    @color = Gosu::Color.new(0xff000000)
+    @color.red = rand(256 - 40) + 40
+    @color.green = rand(256 - 40) + 40
+    @color.blue = rand(256 - 40) + 40
+    @x = rand * 640
+    @y= rand * 480
+  end
+
+  def draw
+    img = @animation[Gosu::milliseconds / 100 % @animation.size];
+    img.draw(@x - img.width / 2.0, @y - img.height / 2.0, ZOrder::Stars, 1, 1, @color, :add)
   end
 end
 
